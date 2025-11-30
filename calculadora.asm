@@ -8,6 +8,7 @@
 # 30/11/2025 - 17:23 - Adicao das conversoes Octal (Base 8) e Hexadecimal (Base 16).
 # 30/11/2025 - 17:55 - Criacao da conversão de BCD.
 # 30/11/2025 - 18:27 - Adicao da conversao Complemento de 2 (16 bits).
+# 30/11/2025 - 19:09 - Criacao da analise IEEE 754.
 
 .data
     menu_msg:       .asciiz "\n\n--- CALCULADORA DIDATICA MIPS ---\n1 - Base 10 para Base 2\n2 - Base 10 para Base 8\n3 - Base 10 para Base 16\n4 - Base 10 para BCD\n5 - Base 10 para Compl. de 2 (16 bits)\n6 - Real para Float/Double\n0 - Sair\nEscolha uma opcao: "
@@ -26,6 +27,15 @@
     c2_pos_msg:     .asciiz "Analise: Numero Positivo detectado.\nO bit 15 (Mais Significativo) sera 0.\n"
     c2_neg_msg:     .asciiz "Analise: Numero Negativo detectado.\nO bit 15 sera 1. O numero foi invertido e somado 1.\n"
     c2_final_msg:   .asciiz "Binario (16 bits): "
+    fp_header:      .asciiz "\n--- Analise IEEE 754 (Float 32 bits) ---\n"
+    fp_input:       .asciiz "Digite um numero Real (ex: 12.5): "
+    lbl_sinal:      .asciiz "\n[Sinal] (1 bit): "
+    lbl_exp:        .asciiz "\n[Expoente] (8 bits com vies 127): "
+    lbl_exp_dec:    .asciiz " -> Valor Decimal: "
+    lbl_exp_real:   .asciiz " -> Sem Vies (Real): "
+    lbl_mant:       .asciiz "\n[Mantissa/Fracao] (23 bits): "
+    lbl_sinal_pos:  .asciiz " (0 = Positivo)"
+    lbl_sinal_neg:  .asciiz " (1 = Negativo)"
 
 .text
 .globl main
@@ -49,6 +59,8 @@ beq $t0, 3, call_hex
 beq $t0, 4, call_bcd
 beq $t0, 4, call_bcd
 beq $t0, 5, call_compl2
+beq $t0, 5, call_compl2
+beq $t0, 6, call_float
         
 li $v0, 4
 la $a0, error_msg
@@ -409,6 +421,114 @@ decr_loop_c2:
     sub $t1, $t1, 1  
     bge $t1, 0, loop_bits_16 
 
+    j while_menu
+    
+# FUNCIONALIDADE 3: REAL PARA FLOAT
+call_float:
+    li $v0, 4
+    la $a0, fp_input
+    syscall
+
+    li $v0, 6
+    syscall
+
+    mfc1 $s0, $f0
+
+    li $v0, 4
+    la $a0, fp_header
+    syscall
+
+    li $v0, 4
+    la $a0, lbl_sinal
+    syscall
+
+    srl $t1, $s0, 31
+    
+    li $v0, 1
+    move $a0, $t1
+    syscall
+
+    beqz $t1, print_pos_text
+    li $v0, 4
+    la $a0, lbl_sinal_neg
+    syscall
+    j analise_exp
+
+print_pos_text:
+    li $v0, 4
+    la $a0, lbl_sinal_pos
+    syscall
+
+analise_exp:
+    li $v0, 4
+    la $a0, lbl_exp
+    syscall
+
+    sll $t2, $s0, 1
+    srl $t2, $t2, 24   
+
+    li $t5, 7           
+loop_print_exp_bits:
+    li $t6, 1
+    sllv $t6, $t6, $t5
+    
+    and $t7, $t2, $t6   
+    
+    beqz $t7, prt_0_exp
+    li $a0, 1
+    j do_prt_exp
+prt_0_exp:
+    li $a0, 0
+do_prt_exp:
+    li $v0, 1
+    syscall
+    
+    sub $t5, $t5, 1
+    bge $t5, 0, loop_print_exp_bits
+
+    li $v0, 4
+    la $a0, lbl_exp_dec
+    syscall
+
+    li $v0, 1
+    move $a0, $t2
+    syscall
+
+    li $v0, 4
+    la $a0, lbl_exp_real
+    syscall
+
+    subi $a0, $t2, 127   
+    li $v0, 1
+    syscall
+
+    li $v0, 4
+    la $a0, lbl_mant
+    syscall
+
+    li $t3, 0x007FFFFF
+    and $t4, $s0, $t3
+
+    li $t5, 22   
+
+loop_print_mant:
+    li $t6, 1
+    sllv $t6, $t6, $t5  
+    
+    and $t7, $t4, $t6
+    
+    beqz $t7, prt_0_mant
+    li $a0, 1
+    j do_prt_mant
+prt_0_mant:
+    li $a0, 0
+do_prt_mant:
+    li $v0, 1
+    syscall
+    
+    sub $t5, $t5, 1
+    bge $t5, 0, loop_print_mant
+    
     j while_menu
 
 exit_prog:
