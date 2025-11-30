@@ -5,7 +5,7 @@
 # Data Inicio: 30/11/2025
 # Historico de Revisoes:
 # 30/11/2025 - 16:15 - Criacao da estrutura, menu principal e conversao Binaria.
-# 30/11/2025 - 17:03 - Adicao das conversoes Octal (Base 8) e Hexadecimal (Base 16).
+# 30/11/2025 - 17:23 - Adicao das conversoes Octal (Base 8) e Hexadecimal (Base 16).
 
 .data
     menu_msg:       .asciiz "\n\n--- CALCULADORA DIDATICA MIPS ---\n1 - Base 10 para Base 2\n2 - Base 10 para Base 8\n3 - Base 10 para Base 16\n4 - Base 10 para BCD\n5 - Base 10 para Compl. de 2 (16 bits)\n6 - Real para Float/Double\n0 - Sair\nEscolha uma opcao: "
@@ -241,7 +241,7 @@ print_stack_hex:
 
 print_hex_num:
     move $a0, $t5
-    li $v0, 
+    li $v0, 1
     syscall
 
 decr_count_hex:
