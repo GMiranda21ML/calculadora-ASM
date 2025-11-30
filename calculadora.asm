@@ -17,6 +17,9 @@
     final_res_msg:  .asciiz "\nResultado Final (Binario): "
     bye_msg:        .asciiz "\nEncerrando o programa..."
     error_msg:      .asciiz "\nOpcao invalida!\n"
+    bcd_msg:        .asciiz "\n[Digito Decimal] "
+    bcd_arrow:      .asciiz " => [BCD 4-bits] "
+    space:          .asciiz " "
 
 .text
 .globl main
@@ -36,6 +39,8 @@ beq $t0, 1, call_binario
 beq $t0, 1, call_binario
 beq $t0, 2, call_octal
 beq $t0, 3, call_hex
+beq $t0, 3, call_hex
+beq $t0, 4, call_bcd
         
 li $v0, 4
 la $a0, error_msg
@@ -250,6 +255,83 @@ decr_count_hex:
 
 end_convert:
     j while_menu
+    
+# FUNCIONALIDADE 1D: DECIMAL PARA BCD (Binary Coded Decimal)
+call_bcd:
+    li $v0, 4
+    la $a0, input_msg
+    syscall
+
+    li $v0, 5
+    syscall
+    move $s0, $v0           
+    
+    move $t1, $s0           
+    li $t2, 10           
+    li $t3, 0               
+
+loop_split_digits:
+    div $t1, $t2        
+    mflo $t1               
+    mfhi $t5            
+
+    sub $sp, $sp, 4
+    sw $t5, 0($sp)
+    addi $t3, $t3, 1      
+
+    bgt $t1, 0, loop_split_digits  
+
+    li $v0, 4
+    la $a0, final_res_msg
+    syscall
+
+print_bcd_loop:
+    blez $t3, end_convert  
+    lw $s1, 0($sp)
+    add $sp, $sp, 4
+    
+    li $v0, 4
+    la $a0, bcd_msg
+    syscall
+    
+    li $v0, 1
+    move $a0, $s1
+    syscall
+
+    li $v0, 4
+    la $a0, bcd_arrow
+    syscall
+
+    li $t6, 3              
+
+loop_4bits:
+    li $t7, 1
+    sllv $t7, $t7, $t6    
+
+    and $t8, $s1, $t7     
+
+    beqz $t8, print_zero
+    
+    li $a0, 1
+    li $v0, 1
+    syscall
+    j next_bit
+
+print_zero:
+    li $a0, 0
+    li $v0, 1
+    syscall
+
+next_bit:
+    sub $t6, $t6, 1         
+    bge $t6, 0, loop_4bits  
+
+    li $v0, 4
+    la $a0, space
+    syscall
+
+    sub $t3, $t3, 1         
+    j print_bcd_loop
 
 
 exit_prog:
